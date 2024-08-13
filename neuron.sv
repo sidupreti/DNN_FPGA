@@ -46,16 +46,16 @@ module neuron #(
             end
 
             // Add bias to MAC result and handle overflow/underflow
-            logic [31:0] temp_result; // Declare temp_result without signed
-            temp_result = $signed(mac) + $signed({{16{bias[15]}}, bias}); // Cast mac and bias to signed for the addition
+            logic [31:0] signed_mac;  // Renamed from temp_result to avoid conflict
+            signed_mac = $signed(mac) + $signed({{16{bias[15]}}, bias}); // Cast mac and bias to signed for the addition
 
             // Check for overflow/underflow and saturate if necessary
-            if (temp_result > 32'sh00007FFF) begin
+            if (signed_mac > 32'sh00007FFF) begin
                 result <= 16'h7FFF; // Positive overflow, max positive value
-            end else if (temp_result < -32'sh00008000) begin
+            end else if (signed_mac < -32'sh00008000) begin
                 result <= 16'h8000; // Negative overflow, max negative value
             end else begin
-                result <= temp_result[30:15]; // Normal operation
+                result <= signed_mac[30:15]; // Normal operation
             end
 
             done <= 1'b1;
