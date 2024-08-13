@@ -7,14 +7,14 @@ module neuron #(
     input logic clk,
     input logic rst_n,
     input logic start,
-    input logic [15:0] input_vector [INPUT_SIZE],  // Input vector
-    output logic [15:0] result,                    // Neuron output
+    input logic [15:0] input_vector [INPUT_SIZE],  // Input vector, unsigned by default
+    output logic [15:0] result,                    // Neuron output, unsigned by default
     output logic done                              // Done signal
 );
 
     logic signed [31:0] mac;                        // Multiply-Accumulate register
-    logic signed [15:0] weight_rom [0:INPUT_SIZE-1]; // ROM for weights
-    logic signed [15:0] bias;
+    logic signed [15:0] weight_rom [0:INPUT_SIZE-1]; // ROM for weights, signed
+    logic signed [15:0] bias;                       // Bias, signed
     integer j;
 
     // Initialize weights based on neuron number
@@ -42,7 +42,7 @@ module neuron #(
         end else if (start) begin
             mac <= 32'sd0;
             for (j = 0; j < INPUT_SIZE; j = j + 1) begin
-                mac <= mac + $signed(input_vector[j]) * $signed(weight_rom[j]);
+                mac <= mac + $signed(input_vector[j]) * weight_rom[j];  // Casting input_vector as signed
             end
 
             // Add bias to MAC result and handle overflow/underflow
