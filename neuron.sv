@@ -44,7 +44,20 @@ module neuron #(
             for (j = 0; j < INPUT_SIZE; j = j + 1) begin
                 mac <= mac + input_vector[j] * weight_rom[j];
             end
-            result <= (mac[30:15] + bias) > 0 ? (mac[30:15] + bias) : 16'd0;  // ReLU activation
+
+            // Add bias to MAC result and handle overflow/underflow
+            logic signed [31:0] temp_result;
+            temp_result = mac + {{16{bias[15]}}, bias}; // Bias sign-extension
+
+            // Check for overflow/underflow and saturate if necessary
+            if (temp_result > 32'sh00007FFF) begin
+                result <= 16'sh7FFF; // Positive overflow, max positive value
+            end else if (temp_result < -32'sh00008000) begin
+                result <= 16'sh8000; // Negative overflow, max negative value
+            end else begin
+                result <= temp_result[30:15]; // Normal operation
+            end
+
             done <= 1;
         end else begin
             done <= 0;
