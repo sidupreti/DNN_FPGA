@@ -15,6 +15,8 @@ module dnn_top #(
     logic [OUTPUT_NEURONS-1:0] output_done_vector;
     logic signed [15:0] hidden_output [HIDDEN_NEURONS];
     logic signed [15:0] output_values [OUTPUT_NEURONS];
+    logic hidden_layer_done;
+    logic output_layer_done;
     integer i; // Loop variable for argmax calculation
 
     // Instantiate hidden layer neurons
@@ -36,6 +38,16 @@ module dnn_top #(
         end
     endgenerate
 
+    // Manually check if all hidden layer neurons are done
+    always_comb begin
+        hidden_layer_done = 1'b1;
+        for (i = 0; i < HIDDEN_NEURONS; i = i + 1) begin
+            if (!hidden_done_vector[i]) begin
+                hidden_layer_done = 1'b0;
+            end
+        end
+    end
+
     // Instantiate output layer neurons
     generate
         for (idx = 0; idx < OUTPUT_NEURONS; idx = idx + 1) begin : output_neurons
@@ -46,7 +58,7 @@ module dnn_top #(
             ) output_neuron_inst (
                 .clk(clk),
                 .rst_n(rst_n),
-                .start(&hidden_done_vector), // Start when all hidden layer neurons are done
+                .start(hidden_layer_done), // Start when all hidden layer neurons are done
                 .input_vector(hidden_output),
                 .result(output_values[idx]),
                 .done(output_done_vector[idx])
@@ -54,11 +66,21 @@ module dnn_top #(
         end
     endgenerate
 
+    // Manually check if all output layer neurons are done
+    always_comb begin
+        output_layer_done = 1'b1;
+        for (i = 0; i < OUTPUT_NEURONS; i = i + 1) begin
+            if (!output_done_vector[i]) begin
+                output_layer_done = 1'b0;
+            end
+        end
+    end
+
     // Argmax logic to determine the final output digit
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             final_digit <= 4'd0;
-        end else if (&output_done_vector) begin
+        end else if (output_layer_done) begin
             logic signed [15:0] max_value;
             logic [3:0] max_index;
 
@@ -76,7 +98,7 @@ module dnn_top #(
         end
     end
 
-    // Combine all done signals into one to indicate when the entire process is done
-    assign done = &output_done_vector;
+    // Indicate when the entire process is done
+    assign done = output_layer_done;
 
 endmodule
