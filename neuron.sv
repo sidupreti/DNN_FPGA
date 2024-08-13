@@ -16,6 +16,7 @@ module neuron #(
     logic [15:0] weight_rom [0:INPUT_SIZE-1]; // ROM for weights
     logic [15:0] bias;                       // Bias
     integer j;
+    integer bias_file;  // File descriptor for the bias file
 
     // Initialize weights based on neuron number
     initial begin
@@ -29,9 +30,17 @@ module neuron #(
     // Initialize bias based on neuron number
     initial begin
         if (IS_HIDDEN_LAYER) begin
-            $readmemb($sformatf("bias_hidden_%0d.mem", NEURON_NUM), bias);
+            bias_file = $fopen($sformatf("bias_hidden_%0d.mem", NEURON_NUM), "r");
         end else begin
-            $readmemb($sformatf("bias_output_%0d.mem", NEURON_NUM), bias);
+            bias_file = $fopen($sformatf("bias_output_%0d.mem", NEURON_NUM), "r");
+        end
+
+        if (bias_file) begin
+            $fscanf(bias_file, "%b", bias);
+            $fclose(bias_file);
+        end else begin
+            $display("Error: Could not open bias file for neuron %0d", NEURON_NUM);
+            bias = 16'd0;  // Set a default value if file read fails
         end
     end
 
