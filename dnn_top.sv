@@ -11,18 +11,11 @@ module dnn_top #(
     output logic done
 );
 
-    logic done_signals [HIDDEN_NEURONS + OUTPUT_NEURONS];
+    logic [HIDDEN_NEURONS-1:0] hidden_done_vector;
+    logic [OUTPUT_NEURONS-1:0] output_done_vector;
     logic signed [15:0] hidden_output [HIDDEN_NEURONS];
     logic signed [15:0] output_values [OUTPUT_NEURONS];
-    logic [HIDDEN_NEURONS-1:0] hidden_done_vector;
     integer i; // Loop variable for argmax calculation
-
-    // Convert the array `done_signals` for hidden neurons to a vector `hidden_done_vector`
-    always_comb begin
-        for (i = 0; i < HIDDEN_NEURONS; i = i + 1) begin
-            hidden_done_vector[i] = done_signals[i];
-        end
-    end
 
     // Instantiate hidden layer neurons
     genvar idx;
@@ -38,7 +31,7 @@ module dnn_top #(
                 .start(start),
                 .input_vector(input_vector),
                 .result(hidden_output[idx]),
-                .done(done_signals[idx])
+                .done(hidden_done_vector[idx])
             );
         end
     endgenerate
@@ -56,7 +49,7 @@ module dnn_top #(
                 .start(&hidden_done_vector), // Start when all hidden layer neurons are done
                 .input_vector(hidden_output),
                 .result(output_values[idx]),
-                .done(done_signals[HIDDEN_NEURONS + idx])
+                .done(output_done_vector[idx])
             );
         end
     endgenerate
@@ -65,7 +58,7 @@ module dnn_top #(
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             final_digit <= 4'd0;
-        end else if (&done_signals[HIDDEN_NEURONS:HIDDEN_NEURONS+OUTPUT_NEURONS-1]) begin
+        end else if (&output_done_vector) begin
             logic signed [15:0] max_value;
             logic [3:0] max_index;
 
@@ -83,6 +76,7 @@ module dnn_top #(
         end
     end
 
-    assign done = &done_signals;
+    // Combine all done signals into one to indicate when the entire process is done
+    assign done = &output_done_vector;
 
 endmodule
