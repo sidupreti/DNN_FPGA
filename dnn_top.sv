@@ -17,7 +17,6 @@ module dnn_top #(
     logic signed [15:0] output_values [OUTPUT_NEURONS];
     logic hidden_layer_done;
     logic output_layer_done;
-    integer i; // Loop variable for argmax calculation
 
     // Instantiate hidden layer neurons
     genvar idx;
@@ -41,8 +40,9 @@ module dnn_top #(
     // Manually check if all hidden layer neurons are done
     always_comb begin
         hidden_layer_done = 1'b1;
-        for (i = 0; i < HIDDEN_NEURONS; i = i + 1) begin
-            if (!hidden_done_vector[i]) begin
+        integer j; // Local loop variable
+        for (j = 0; j < HIDDEN_NEURONS; j = j + 1) begin
+            if (!hidden_done_vector[j]) begin
                 hidden_layer_done = 1'b0;
             end
         end
@@ -69,8 +69,9 @@ module dnn_top #(
     // Manually check if all output layer neurons are done
     always_comb begin
         output_layer_done = 1'b1;
-        for (i = 0; i < OUTPUT_NEURONS; i = i + 1) begin
-            if (!output_done_vector[i]) begin
+        integer k; // Local loop variable
+        for (k = 0; k < OUTPUT_NEURONS; k = k + 1) begin
+            if (!output_done_vector[k]) begin
                 output_layer_done = 1'b0;
             end
         end
@@ -83,14 +84,15 @@ module dnn_top #(
         end else if (output_layer_done) begin
             logic signed [15:0] max_value;
             logic [3:0] max_index;
+            integer m; // Local loop variable
 
-            max_value <= output_values[0];
-            max_index <= 4'd0;
+            max_value = output_values[0];
+            max_index = 4'd0;
 
-            for (i = 1; i < OUTPUT_NEURONS; i = i + 1) begin
-                if (output_values[i] > max_value) begin
-                    max_value <= output_values[i];
-                    max_index <= i;
+            for (m = 1; m < OUTPUT_NEURONS; m = m + 1) begin
+                if (output_values[m] > max_value) begin
+                    max_value = output_values[m];
+                    max_index = m[3:0]; // Ensure proper bit-width
                 end
             end
 
