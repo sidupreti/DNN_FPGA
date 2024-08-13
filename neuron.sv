@@ -7,14 +7,14 @@ module neuron #(
     input logic clk,
     input logic rst_n,
     input logic start,
-    input logic [15:0] input_vector [INPUT_SIZE],  // Input vector, unsigned by default
-    output logic [15:0] result,                    // Neuron output, unsigned by default
+    input logic [15:0] input_vector [INPUT_SIZE],  // Input vector
+    output logic [15:0] result,                    // Neuron output
     output logic done                              // Done signal
 );
 
-    logic signed [31:0] mac;                        // Multiply-Accumulate register
-    logic signed [15:0] weight_rom [0:INPUT_SIZE-1]; // ROM for weights, signed
-    logic signed [15:0] bias;                       // Bias, signed
+    logic [31:0] mac;                        // Multiply-Accumulate register
+    logic [15:0] weight_rom [0:INPUT_SIZE-1]; // ROM for weights
+    logic [15:0] bias;                       // Bias
     integer j;
 
     // Initialize weights based on neuron number
@@ -37,17 +37,17 @@ module neuron #(
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            mac <= 32'sd0;
+            mac <= 32'd0;
             done <= 1'b0;
         end else if (start) begin
-            mac <= 32'sd0;
+            mac <= 32'd0;
             for (j = 0; j < INPUT_SIZE; j = j + 1) begin
-                mac <= mac + $signed(input_vector[j]) * weight_rom[j];  // Casting input_vector as signed
+                mac <= mac + $signed(input_vector[j]) * $signed(weight_rom[j]); // Cast to signed during multiplication
             end
 
             // Add bias to MAC result and handle overflow/underflow
-            logic signed [31:0] temp_result;
-            temp_result = mac + {{16{bias[15]}}, bias}; // Bias sign-extension
+            logic [31:0] temp_result; // Declare temp_result without signed
+            temp_result = $signed(mac) + $signed({{16{bias[15]}}, bias}); // Cast mac and bias to signed for the addition
 
             // Check for overflow/underflow and saturate if necessary
             if (temp_result > 32'sh00007FFF) begin
